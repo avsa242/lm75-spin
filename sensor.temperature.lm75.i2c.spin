@@ -57,6 +57,23 @@ PUB Configure
 PUB HystTemp
 ' XXX
 
+PUB Shutdown(enabled) | tmp
+' Shutdown (sleep) sensor
+'   Valid values:
+'       TRUE (-1 or 1): Shutdown the LM75's internal blocks (low-power, I2C interface active)
+'       FALSE (0): Normal operation
+'   Any other value polls the chip and returns the current setting
+    readRegX(core#CONFIGURATION, 1, @tmp)
+    case ||enabled
+        0, 1:
+            enabled := ||enabled
+        OTHER:
+            return (tmp & %1) * TRUE
+
+    tmp &= core#MASK_SHUTDOWN
+    tmp := (tmp | enabled) & core#CONFIGURATION_MASK
+    writeRegX(core#CONFIGURATION, 1, @tmp)
+
 PUB Temperature | tmp
 ' Returns temperature, in centi-degrees Celsius
     readRegX(core#TEMPERATURE, 2, @result)
