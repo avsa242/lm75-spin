@@ -95,6 +95,24 @@ PUB AlarmPinActive(state) | tmp
     tmp := (tmp | state) & core#CONFIGURATION_MASK
     writeRegX(core#CONFIGURATION, 1, @tmp)
 
+PUB AlarmTriggerThresh(nr_faults) | tmp
+' Set number of faults necessary to assert alarm
+'   Valid values:
+'       1, 2, 4, 6
+'   Any other value polls the chip and returns the current setting
+'   NOTE: The faults must occur consecutively (prevents false positives in noisy environments)
+    readRegX(core#CONFIGURATION, 1, @tmp)
+    case nr_faults
+        1, 2, 4, 6:
+            nr_faults := lookdownz(nr_faults: 1, 2, 4, 6)
+        OTHER:
+            result := (tmp >> core#FLD_FAULTQ) & core#BITS_FAULTQ
+            return lookupz(tmp: 1, 2, 4, 6)
+
+    tmp &= core#MASK_FAULTQ
+    tmp := (tmp | nr_faults) & core#CONFIGURATION_MASK
+    writeRegX(core#CONFIGURATION, 1, @tmp)
+
 PUB Configure
 ' XXX
 
