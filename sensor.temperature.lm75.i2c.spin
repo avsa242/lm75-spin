@@ -113,9 +113,6 @@ PUB AlarmTriggerThresh(nr_faults) | tmp
     tmp := (tmp | nr_faults) & core#CONFIGURATION_MASK
     writeRegX(core#CONFIGURATION, 1, @tmp)
 
-PUB Configure
-' XXX
-
 PUB HystTemp
 ' XXX
 
@@ -143,9 +140,8 @@ PUB Temperature | tmp
     result.byte[0] := result.byte[1]
     result.byte[1] := result.byte[3]
     result &= core#TEMPERATURE_MASK
-    result >>= 7
-    ~~result
-    result := result * 5
+    result := (result << 16 ~> 23)                              ' Extend the sign bit, then bring it down into the LSBs, keeping the sign bit
+    result := result * 5                                        ' Each LSB is 0.5deg C, multiply by 5 to get centi-degrees
 
 PRI readRegX(reg, nr_bytes, buff_addr) | cmd_packet
 ' Reads bytes from device register

@@ -35,6 +35,7 @@ PUB Main | tmp
     Setup
     repeat
         tmp := temp.Temperature
+
         ser.Position (0, 3)
         ser.Str (string("Temperature (int, centi-degrees C): "))
         ser.Dec (tmp)
@@ -47,6 +48,7 @@ PUB Main | tmp
         ser.Chars (32, 2)
         time.MSleep (300)
 
+
 PUB Setup
 
     repeat until _ser_cog := ser.Start (115_200)
@@ -56,7 +58,7 @@ PUB Setup
         ser.Str(string("LM75 driver started", ser#NL))
     else
         ser.Str(string("LM75 driver failed to start - halting", ser#NL))
-    fs.SetPrecision (5)
+    fs.SetPrecision (4)
 
 PUB Stop
 
