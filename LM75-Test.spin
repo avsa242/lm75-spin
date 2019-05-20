@@ -1,11 +1,11 @@
 {
     --------------------------------------------
     Filename: LM75-Test.spin
-    Author:
-    Description:
+    Author: Jesse Burt
+    Description: Simple test for the LM75 driver
     Copyright (c) 2019
     Started May 19, 2019
-    Updated May 19, 2019
+    Updated May 20, 2019
     See end of file for terms of use.
     --------------------------------------------
 }

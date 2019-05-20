@@ -1,11 +1,11 @@
 {
     --------------------------------------------
     Filename: sensor.temperature.lm75.i2c.spin
-    Author:
-    Description:
+    Author: Jesse Burt
+    Description: Driver for Maxim's LM75 Digital Temperature Sensor
     Copyright (c) 2019
     Started May 19, 2019
-    Updated May 19, 2019
+    Updated May 20, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
