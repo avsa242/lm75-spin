@@ -12,17 +12,21 @@
 
 CON
 
-    SLAVE_WR        = core#SLAVE_ADDR
-    SLAVE_RD        = core#SLAVE_ADDR|1
+    SLAVE_WR            = core#SLAVE_ADDR
+    SLAVE_RD            = core#SLAVE_ADDR|1
 
-    DEF_SCL         = 28
-    DEF_SDA         = 29
-    DEF_HZ          = 400_000
-    I2C_MAX_FREQ    = core#I2C_MAX_FREQ
+    DEF_SCL             = 28
+    DEF_SDA             = 29
+    DEF_HZ              = 400_000
+    I2C_MAX_FREQ        = core#I2C_MAX_FREQ
 
 ' Overtemperature alarm (OS) output modes
-    ALARM_COMP      = 0
-    ALARM_INT       = 1
+    ALARM_COMP          = 0
+    ALARM_INT           = 1
+
+' Overtemperature alarm (OS) output pin active state
+    ALARM_ACTIVE_LOW    = 0
+    ALARM_ACTIVE_HIGH   = 1
 
 VAR
 
@@ -70,6 +74,25 @@ PUB AlarmMode(mode) | tmp
 
     tmp &= core#MASK_COMP_INT
     tmp := (tmp | mode) & core#CONFIGURATION_MASK
+    writeRegX(core#CONFIGURATION, 1, @tmp)
+
+PUB AlarmPinActive(state) | tmp
+' Overtemperature alarm output pin active state
+'   Valid values:
+'       ALARM_ACTIVE_LOW (0): Pin is active low
+'       ALARM_ACITVE_HIGH (1): Pin is active high
+'   Any other value polls the chip and returns the current setting
+'   NOTE: The OS pin is open-drain, under all conditions, and requires
+'       a pull-up resistor to output a high voltage.
+    readRegX(core#CONFIGURATION, 1, @tmp)
+    case state
+        ALARM_ACTIVE_LOW, ALARM_ACTIVE_HIGH:
+            state := state << core#FLD_OS_POLARITY
+        OTHER:
+            return ((tmp >> core#FLD_OS_POLARITY) & %1)
+
+    tmp &= core#MASK_OS_POLARITY
+    tmp := (tmp | state) & core#CONFIGURATION_MASK
     writeRegX(core#CONFIGURATION, 1, @tmp)
 
 PUB Configure
