@@ -58,6 +58,7 @@ PUB Setup
         ser.Str(string("LM75 driver started", ser#NL))
     else
         ser.Str(string("LM75 driver failed to start - halting", ser#NL))
+        Stop
     fs.SetPrecision (4)
 
 PUB Stop
