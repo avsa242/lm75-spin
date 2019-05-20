@@ -12,13 +12,17 @@
 
 CON
 
-    SLAVE_WR          = core#SLAVE_ADDR
-    SLAVE_RD          = core#SLAVE_ADDR|1
+    SLAVE_WR        = core#SLAVE_ADDR
+    SLAVE_RD        = core#SLAVE_ADDR|1
 
-    DEF_SCL           = 28
-    DEF_SDA           = 29
-    DEF_HZ            = 400_000
-    I2C_MAX_FREQ      = core#I2C_MAX_FREQ
+    DEF_SCL         = 28
+    DEF_SDA         = 29
+    DEF_HZ          = 400_000
+    I2C_MAX_FREQ    = core#I2C_MAX_FREQ
+
+' Overtemperature alarm (OS) output modes
+    ALARM_COMP      = 0
+    ALARM_INT       = 1
 
 VAR
 
@@ -50,6 +54,23 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): okay
 PUB Stop
 
     i2c.stop
+
+PUB AlarmMode(mode) | tmp
+' Overtemperature alarm output mode
+'   Valid values:
+'       ALARM_INT (1):  Interrupt mode
+'       ALARM_COMP (0): Comparator mode
+'   Any other value polls the chip and returns the current setting
+    readRegX(core#CONFIGURATION, 1, @tmp)
+    case mode
+        ALARM_COMP, ALARM_INT:
+            mode := mode << core#FLD_COMP_INT
+        OTHER:
+            return ((tmp >> core#FLD_COMP_INT) & %1)
+
+    tmp &= core#MASK_COMP_INT
+    tmp := (tmp | mode) & core#CONFIGURATION_MASK
+    writeRegX(core#CONFIGURATION, 1, @tmp)
 
 PUB Configure
 ' XXX
