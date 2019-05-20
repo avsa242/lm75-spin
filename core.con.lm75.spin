@@ -22,6 +22,15 @@ CON
 
     CONFIGURATION       = $01
     CONFIGURATION_MASK  = $FF
+        FLD_FAULTQ      = 3
+        FLD_OS_POLARITY = 2
+        FLD_COMP_INT    = 1
+        FLD_SHUTDOWN    = 0
+        BITS_FAULTQ     = %11
+        MASK_FAULTQ     = CONFIGURATION_MASK ^ (1 << FLD_FAULTQ)
+        MASK_OS_POLARITY= CONFIGURATION_MASK ^ (1 << FLD_OS_POLARITY)
+        MASK_COMP_INT   = CONFIGURATION_MASK ^ (1 << FLD_COMP_INT)
+        MASK_SHUTDOWN   = CONFIGURATION_MASK ^ (1 << FLD_SHUTDOWN)
 
     T_HYST              = $02
     T_HYST_MASK         = $FF80

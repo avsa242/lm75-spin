@@ -34,10 +34,17 @@ PUB Main | tmp
 
     Setup
     repeat
+        tmp := temp.Temperature
+        ser.Position (0, 3)
+        ser.Str (string("Temperature (int, centi-degrees C): "))
+        ser.Dec (tmp)
+
         ser.Position (0, 4)
-        tmp := math.FFloat (temp.Temperature)
+        ser.Str (string("Temperature (float, degrees C): "))
+        tmp := math.FFloat (tmp)
         tmp := math.FDiv (tmp, 10.0)
         ser.Str (fs.FloatToString (tmp))
+        ser.Chars (32, 2)
         time.MSleep (300)
 
 PUB Setup
@@ -49,6 +56,7 @@ PUB Setup
         ser.Str(string("LM75 driver started", ser#NL))
     else
         ser.Str(string("LM75 driver failed to start - halting", ser#NL))
+    fs.SetPrecision (5)
 
 PUB Stop
 
