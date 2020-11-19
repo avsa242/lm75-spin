@@ -67,9 +67,6 @@ PUB Stop{}
 PUB Defaults{}
 ' Factory default settings
 
-PUB HystTemp
-' XXX
-
 PUB IntActiveState(state): curr_state
 ' Interrupt pin active state (OS)
 '   Valid values:
@@ -87,6 +84,18 @@ PUB IntActiveState(state): curr_state
 
     state := ((curr_state & core#OS_POL_MASK) | state) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @state)
+
+PUB IntClearThresh(thr): curr_thr
+' Interrupt clear threshold (hysteresis), in hundredths of a degree
+'   Valid values: -55_00..12_00 (default: 75_00)
+    curr_thr := 0
+    readreg(core#T_HYST, 2, @curr_thr)
+    case thr
+        -55_00..125_00:
+            thr := temp2adc(thr)
+            writereg(core#T_HYST, 2, @thr)
+        other:
+            return adc2temp(curr_thr)
 
 PUB IntMode(mode): curr_mode
 ' Interrupt output mode
@@ -143,7 +152,7 @@ PUB TempData{}: temp_raw
 
 PUB Temperature{}: temp_cal
 ' Temperature, in hundredths of a degree, in chosen scale
-    return calcTemp(tempdata{})
+    return adc2temp(tempdata{})
 
 PUB TempScale(scale): curr_scl
 ' Set temperature scale used by Temperature method
@@ -157,11 +166,11 @@ PUB TempScale(scale): curr_scl
         other:
             return _temp_scale
 
-PRI calcTemp(temp_word): temp_cal | tmp
+PRI adc2temp(temp_word): temp_cal | tmp
 ' Calculate temperature, using temperature word
 '   Returns: temperature, in hundredths of a degree, in chosen scale
-    temp_cal := (temp_word << 16 ~> 23)                              ' Extend the sign bit, then bring it down into the LSBs, keeping the sign bit
-    temp_cal := temp_cal * 50                                        ' Each LSB is 0.5deg C, multiply by 5 to get centi-degrees
+    temp_cal := (temp_word << 16 ~> 23)         ' Extend sign, then scale down
+    temp_cal := temp_cal * 50                   ' LSB = 0.5deg C
     case _temp_scale
         C:
             return
@@ -169,6 +178,19 @@ PRI calcTemp(temp_word): temp_cal | tmp
             return ((temp_cal * 90) / 50) + 32_00
         other:
             return FALSE
+
+PRI temp2adc(temp_cal): temp_word
+' Calculate ADC word, using temperature in hundredths of a degree
+'   Returns: ADC word, 16bit, left-justified
+    case _temp_scale                            ' convert to Celsius, first
+        C:
+        F:
+            temp_word := ((temp_cal - 32_00) * 50) / 90
+        other:
+            return FALSE
+
+    temp_word := (temp_word / 50) << 7
+    return ~~temp_word
 
 PRI readReg(reg, nr_bytes, ptr_buff) | cmd_pkt, tmp
 ' Read nr_bytes from device into ptr_buff
@@ -188,11 +210,13 @@ PRI writereg(reg, nr_bytes, ptr_buff) | cmd_pkt[2], tmp
     cmd_pkt.byte[0] := SLAVE_WR
     cmd_pkt.byte[1] := reg
 
-    repeat tmp from 0 to nr_bytes-1
-        cmd_pkt.byte[2 + tmp] := byte[ptr_buff][tmp]
-
     i2c.start{}
-    i2c.wr_block (@cmd_pkt, 2 + nr_bytes)
+    repeat tmp from 0 to 1
+        i2c.write(cmd_pkt.byte[tmp])
+
+    repeat tmp from nr_bytes-1 to 0
+        i2c.write(byte[ptr_buff][tmp])
+
     i2c.stop{}
 
 DAT
