@@ -26,8 +26,8 @@ CON
     ALARM_INT           = 1
 
 ' Overtemperature alarm (OS) output pin active state
-    ALARM_ACTIVE_LOW    = 0
-    ALARM_ACTIVE_HIGH   = 1
+    ACTIVE_LO           = 0
+    ACTIVE_HI           = 1
 
     C                   = 0
     F                   = 1
@@ -67,17 +67,20 @@ PUB Stop{}
 PUB Defaults{}
 ' Factory default settings
 
-PUB AlarmPinActive(state): curr_state
-' Overtemperature alarm output pin active state
+PUB HystTemp
+' XXX
+
+PUB IntActiveState(state): curr_state
+' Interrupt pin active state (OS)
 '   Valid values:
-'       ALARM_ACTIVE_LOW (0): Pin is active low
-'       ALARM_ACITVE_HIGH (1): Pin is active high
+'       ACTIVE_LO (0): Pin is active low
+'       ACITVE_HI (1): Pin is active high
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The OS pin is open-drain, under all conditions, and requires
 '       a pull-up resistor to output a high voltage.
     readreg(core#CONFIG, 1, @curr_state)
     case state
-        ALARM_ACTIVE_LOW, ALARM_ACTIVE_HIGH:
+        ACTIVE_LO, ACTIVE_HI:
             state := state << core#OS_POL
         other:
             return ((curr_state >> core#OS_POL) & %1)
@@ -85,31 +88,11 @@ PUB AlarmPinActive(state): curr_state
     state := ((curr_state & core#OS_POL_MASK) | state) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @state)
 
-PUB AlarmTriggerThresh(nr_faults): curr_thr
-' Set number of faults necessary to assert alarm
-'   Valid values:
-'       1, 2, 4, 6
-'   Any other value polls the chip and returns the current setting
-'   NOTE: The faults must occur consecutively (prevents false positives in noisy environments)
-    readreg(core#CONFIG, 1, @curr_thr)
-    case nr_faults
-        1, 2, 4, 6:
-            nr_faults := lookdownz(nr_faults: 1, 2, 4, 6)
-        other:
-            curr_thr := (curr_thr >> core#FAULTQ) & core#FAULTQ_BITS
-            return lookupz(curr_thr: 1, 2, 4, 6)
-
-    nr_faults := ((curr_thr & core#FAULTQ_MASK) | nr_faults) & core#CONFIG_MASK
-    writereg(core#CONFIG, 1, @nr_faults)
-
-PUB HystTemp
-' XXX
-
 PUB IntMode(mode): curr_mode
-' Overtemperature alarm output mode
+' Interrupt output mode
 '   Valid values:
-'       ALARM_INT (1):  Interrupt mode
-'       ALARM_COMP (0): Comparator mode
+'       INT (1): Interrupt cleared only after reading temperature
+'       COMP (0): Interrupt cleared when temp drops below threshold
 '   Any other value polls the chip and returns the current setting
     readreg(core#CONFIG, 1, @curr_mode)
     case mode
@@ -120,6 +103,23 @@ PUB IntMode(mode): curr_mode
 
     mode := ((curr_mode & core#COMP_INT_MASK) | mode) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @mode)
+
+PUB IntPersistence(thr): curr_thr
+' Number of faults necessary to assert alarm
+'   Valid values:
+'       1, 2, 4, 6
+'   Any other value polls the chip and returns the current setting
+'   NOTE: The faults must occur consecutively (prevents false positives in noisy environments)
+    readreg(core#CONFIG, 1, @curr_thr)
+    case thr
+        1, 2, 4, 6:
+            thr := lookdownz(thr: 1, 2, 4, 6)
+        other:
+            curr_thr := (curr_thr >> core#FAULTQ) & core#FAULTQ_BITS
+            return lookupz(curr_thr: 1, 2, 4, 6)
+
+    thr := ((curr_thr & core#FAULTQ_MASK) | thr) & core#CONFIG_MASK
+    writereg(core#CONFIG, 1, @thr)
 
 PUB Powered(state): curr_state
 ' Enable sensor power
