@@ -43,33 +43,32 @@ OBJ
 
     i2c : "com.i2c"
     core: "core.con.lm75"
-    time: "time"
 
-PUB Null{}
+PUB Null()
 ' This is not a top-level object
 
-PUB Start{}: okay
+PUB Start(): okay
 ' Start using "standard" Propeller I2C pins, 100kHz
     okay := Startx (DEF_SCL, DEF_SDA, DEF_HZ, DEF_ADDR)
 
 PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): okay
 
-    if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)
-        if I2C_HZ =< core#I2C_MAX_FREQ
-            if okay := i2c.setupx(SCL_PIN, SDA_PIN, I2C_HZ)
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
+        if I2C_HZ <= core#I2C_MAX_FREQ
+            if okay := i2c.setup(SCL_PIN, SDA_PIN, I2C_HZ)
                 if lookdown(ADDR_BITS: %000..%111)
                     _addr := (ADDR_BITS << 1)
-                    time.msleep(1)
+                    waitms(1)
                     if i2c.present(SLAVE_WR | _addr)    ' check device bus presence
                         return okay
 
     return FALSE                                ' something above failed
 
-PUB Stop{}
+PUB Stop()
 
-    i2c.stop{}
+    i2c.stop()
 
-PUB Defaults{}
+PUB Defaults()
 ' Factory default settings
     intmode(COMP)
     intthresh(80_00)
@@ -157,23 +156,23 @@ PUB Powered(state): curr_state
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Current consumption when shutdown is approx 1uA
     readreg(core#CONFIG, 1, @curr_state)
-    case ||(state)
+    case abs(state)
         0, 1:
-            state := ||(state) ^ 1
+            state := abs(state) ^ 1
         other:
             return (curr_state & %1) == 1
 
     state := ((curr_state & core#SHUTDOWN_MASK) | state) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @state)
 
-PUB TempData{}: temp_raw
+PUB TempData(): temp_raw
 ' Temperature ADC data
     temp_raw := 0
     readreg(core#TEMP, 2, @temp_raw)
 
-PUB Temperature{}: temp_cal
+PUB Temperature(): temp_cal
 ' Temperature, in hundredths of a degree, in chosen scale
-    return adc2temp(tempdata{})
+    return adc2temp(tempdata())
 
 PUB TempScale(scale): curr_scl
 ' Set temperature scale used by Temperature method
@@ -190,7 +189,7 @@ PUB TempScale(scale): curr_scl
 PRI adc2temp(temp_word): temp_cal | tmp
 ' Calculate temperature, using temperature word
 '   Returns: temperature, in hundredths of a degree, in chosen scale
-    temp_cal := (temp_word << 16 ~> 23)         ' Extend sign, then scale down
+    temp_cal := (temp_word << 16 sar 23)         ' Extend sign, then scale down
     temp_cal := temp_cal * 50                   ' LSB = 0.5deg C
     case _temp_scale
         C:
@@ -213,32 +212,33 @@ PRI temp2adc(temp_cal): temp_word
     temp_word := (temp_cal / 50) << 7
     return ~~temp_word
 
-PRI readReg(reg, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
 ' Read nr_bytes from device into ptr_buff
     cmd_pkt.byte[0] := SLAVE_WR | _addr
-    cmd_pkt.byte[1] := reg
+    cmd_pkt.byte[1] := reg_nr
 
-    i2c.start{}
-    i2c.wr_block(@cmd_pkt, 2)
-    i2c.start{}
+    i2c.start()
+    repeat tmp from 0 to 1
+        i2c.write(cmd_pkt.byte[tmp])
+    i2c.start()
     i2c.write(SLAVE_RD | _addr)
     repeat tmp from nr_bytes-1 to 0
         byte[ptr_buff][tmp] := i2c.read(tmp == 0)
-    i2c.stop{}
+    i2c.stop()
 
-PRI writereg(reg, nr_bytes, ptr_buff) | cmd_pkt[2], tmp
+PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2], tmp
 ' Writes nr_bytes from ptr_buff to device
     cmd_pkt.byte[0] := SLAVE_WR | _addr
-    cmd_pkt.byte[1] := reg
+    cmd_pkt.byte[1] := reg_nr
 
-    i2c.start{}
+    i2c.start()
     repeat tmp from 0 to 1
         i2c.write(cmd_pkt.byte[tmp])
 
     repeat tmp from nr_bytes-1 to 0
         i2c.write(byte[ptr_buff][tmp])
 
-    i2c.stop{}
+    i2c.stop()
 
 DAT
 {
