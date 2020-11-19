@@ -130,6 +130,18 @@ PUB IntPersistence(thr): curr_thr
     thr := ((curr_thr & core#FAULTQ_MASK) | thr) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @thr)
 
+PUB IntThresh(thr): curr_thr
+' Interrupt threshold (overtemperature), in hundredths of a degree
+'   Valid values: -55_00..12_00 (default: 75_00)
+    case thr
+        -55_00..125_00:
+            thr := temp2adc(thr)
+            writereg(core#T_OS, 2, @thr)
+        other:
+            curr_thr := 0
+            readreg(core#T_OS, 2, @curr_thr)
+            return adc2temp(curr_thr)
+
 PUB Powered(state): curr_state
 ' Enable sensor power
 '   Valid values: TRUE (-1 or 1), FALSE (0)
@@ -179,17 +191,17 @@ PRI adc2temp(temp_word): temp_cal | tmp
         other:
             return FALSE
 
-PRI temp2adc(temp_cal): temp_word
+PUB temp2adc(temp_cal): temp_word
 ' Calculate ADC word, using temperature in hundredths of a degree
 '   Returns: ADC word, 16bit, left-justified
     case _temp_scale                            ' convert to Celsius, first
         C:
         F:
-            temp_word := ((temp_cal - 32_00) * 50) / 90
+            temp_cal := ((temp_cal - 32_00) * 50) / 90
         other:
             return FALSE
 
-    temp_word := (temp_word / 50) << 7
+    temp_word := (temp_cal / 50) << 7
     return ~~temp_word
 
 PRI readReg(reg, nr_bytes, ptr_buff) | cmd_pkt, tmp
