@@ -67,22 +67,6 @@ PUB Stop{}
 PUB Defaults{}
 ' Factory default settings
 
-PUB AlarmMode(mode): curr_mode
-' Overtemperature alarm output mode
-'   Valid values:
-'       ALARM_INT (1):  Interrupt mode
-'       ALARM_COMP (0): Comparator mode
-'   Any other value polls the chip and returns the current setting
-    readreg(core#CONFIG, 1, @curr_mode)
-    case mode
-        ALARM_COMP, ALARM_INT:
-            mode := mode << core#COMP_INT
-        other:
-            return ((curr_mode >> core#COMP_INT) & %1)
-
-    mode := ((curr_mode & core#COMP_INT_MASK) | mode) & core#CONFIG_MASK
-    writereg(core#CONFIG, 1, @mode)
-
 PUB AlarmPinActive(state): curr_state
 ' Overtemperature alarm output pin active state
 '   Valid values:
@@ -120,6 +104,22 @@ PUB AlarmTriggerThresh(nr_faults): curr_thr
 
 PUB HystTemp
 ' XXX
+
+PUB IntMode(mode): curr_mode
+' Overtemperature alarm output mode
+'   Valid values:
+'       ALARM_INT (1):  Interrupt mode
+'       ALARM_COMP (0): Comparator mode
+'   Any other value polls the chip and returns the current setting
+    readreg(core#CONFIG, 1, @curr_mode)
+    case mode
+        ALARM_COMP, ALARM_INT:
+            mode := mode << core#COMP_INT
+        other:
+            return ((curr_mode >> core#COMP_INT) & %1)
+
+    mode := ((curr_mode & core#COMP_INT_MASK) | mode) & core#CONFIG_MASK
+    writereg(core#CONFIG, 1, @mode)
 
 PUB Powered(state): curr_state
 ' Enable sensor power
