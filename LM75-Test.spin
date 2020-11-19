@@ -20,7 +20,7 @@ CON
 OBJ
 
     cfg     : "core.con.boardcfg.flip"
-    ser     : "com.serial.terminal"
+    ser     : "com.serial.terminal.ansi"
     time    : "time"
     temp    : "sensor.temperature.lm75.i2c"
     math    : "tiny.math.float"
@@ -52,12 +52,13 @@ PUB Main | tmp
 PUB Setup
 
     repeat until _ser_cog := ser.Start (115_200)
+    time.msleep(30)
     ser.Clear
-    ser.Str(string("Serial terminal started", ser#NL))
+    ser.Strln(string("Serial terminal started"))
     if _temp_cog := temp.Start
-        ser.Str(string("LM75 driver started", ser#NL))
+        ser.Strln(string("LM75 driver started"))
     else
-        ser.Str(string("LM75 driver failed to start - halting", ser#NL))
+        ser.Strln(string("LM75 driver failed to start - halting"))
         Stop
     fs.SetPrecision (4)
 
