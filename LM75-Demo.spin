@@ -126,9 +126,9 @@ PUB Setup{}
     ser.strln(string("Serial terminal started"))
     if temp.startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
         temp.defaults{}
-        ser.str(string("MS5607 driver started (I2C)"))
+        ser.str(string("LM75 driver started (I2C)"))
     else
-        ser.str(string("MS5607 driver failed to start - halting"))
+        ser.str(string("LM75 driver failed to start - halting"))
         temp.stop{}
         time.msleep(5)
         repeat
