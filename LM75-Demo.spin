@@ -23,6 +23,7 @@ CON
     SCL_PIN     = 28
     SDA_PIN     = 29
     I2C_HZ      = 400_000
+    ADDR_BITS   = %000                          ' %000..%111
 ' --
 
     DAT_COL     = 20
@@ -123,7 +124,7 @@ PUB Setup{}
     time.msleep(30)
     ser.clear{}
     ser.strln(string("Serial terminal started"))
-    if temp.startx(SCL_PIN, SDA_PIN, I2C_HZ)
+    if temp.startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
         temp.defaults{}
         ser.str(string("MS5607 driver started (I2C)"))
     else
