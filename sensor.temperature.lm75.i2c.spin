@@ -64,6 +64,9 @@ PUB Stop{}
 
     i2c.stop{}{}
 
+PUB Defaults{}
+' Factory default settings
+
 PUB AlarmMode(mode): curr_mode
 ' Overtemperature alarm output mode
 '   Valid values:
