@@ -73,15 +73,15 @@ PUB AlarmMode(mode): curr_mode
 '       ALARM_INT (1):  Interrupt mode
 '       ALARM_COMP (0): Comparator mode
 '   Any other value polls the chip and returns the current setting
-    readreg(core#CONFIGURATION, 1, @curr_mode)
+    readreg(core#CONFIG, 1, @curr_mode)
     case mode
         ALARM_COMP, ALARM_INT:
-            mode := mode << core#FLD_COMP_INT
+            mode := mode << core#COMP_INT
         other:
-            return ((curr_mode >> core#FLD_COMP_INT) & %1)
+            return ((curr_mode >> core#COMP_INT) & %1)
 
-    mode := ((curr_mode & core#MASK_COMP_INT) | mode) & core#CONFIGURATION_MASK
-    writereg(core#CONFIGURATION, 1, @mode)
+    mode := ((curr_mode & core#COMP_INT_MASK) | mode) & core#CONFIG_MASK
+    writereg(core#CONFIG, 1, @mode)
 
 PUB AlarmPinActive(state): curr_state
 ' Overtemperature alarm output pin active state
@@ -91,15 +91,15 @@ PUB AlarmPinActive(state): curr_state
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The OS pin is open-drain, under all conditions, and requires
 '       a pull-up resistor to output a high voltage.
-    readreg(core#CONFIGURATION, 1, @curr_state)
+    readreg(core#CONFIG, 1, @curr_state)
     case state
         ALARM_ACTIVE_LOW, ALARM_ACTIVE_HIGH:
-            state := state << core#FLD_OS_POLARITY
+            state := state << core#OS_POL
         other:
-            return ((curr_state >> core#FLD_OS_POLARITY) & %1)
+            return ((curr_state >> core#OS_POL) & %1)
 
-    state := ((curr_state & core#MASK_OS_POLARITY) | state) & core#CONFIGURATION_MASK
-    writereg(core#CONFIGURATION, 1, @state)
+    state := ((curr_state & core#OS_POL_MASK) | state) & core#CONFIG_MASK
+    writereg(core#CONFIG, 1, @state)
 
 PUB AlarmTriggerThresh(nr_faults): curr_thr
 ' Set number of faults necessary to assert alarm
@@ -107,40 +107,39 @@ PUB AlarmTriggerThresh(nr_faults): curr_thr
 '       1, 2, 4, 6
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The faults must occur consecutively (prevents false positives in noisy environments)
-    readreg(core#CONFIGURATION, 1, @curr_thr)
+    readreg(core#CONFIG, 1, @curr_thr)
     case nr_faults
         1, 2, 4, 6:
             nr_faults := lookdownz(nr_faults: 1, 2, 4, 6)
         other:
-            curr_thr := (curr_thr >> core#FLD_FAULTQ) & core#BITS_FAULTQ
+            curr_thr := (curr_thr >> core#FAULTQ) & core#FAULTQ_BITS
             return lookupz(curr_thr: 1, 2, 4, 6)
 
-    nr_faults := ((curr_thr & core#MASK_FAULTQ) | nr_faults) & core#CONFIGURATION_MASK
-    writereg(core#CONFIGURATION, 1, @nr_faults)
+    nr_faults := ((curr_thr & core#FAULTQ_MASK) | nr_faults) & core#CONFIG_MASK
+    writereg(core#CONFIG, 1, @nr_faults)
 
 PUB HystTemp
 ' XXX
 
-PUB Shutdown(enabled): curr_state
-' Shutdown (sleep) sensor
-'   Valid values:
-'       TRUE (-1 or 1): Shutdown the LM75's internal blocks (low-power, I2C interface active)
-'       FALSE (0): Normal operation
+PUB Powered(state): curr_state
+' Enable sensor power
+'   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
-    readreg(core#CONFIGURATION, 1, @curr_state)
-    case ||(enabled)
+'   NOTE: Current consumption when shutdown is approx 1uA
+    readreg(core#CONFIG, 1, @curr_state)
+    case ||(state)
         0, 1:
-            enabled := ||(enabled)
+            state := ||(state) ^ 1
         other:
             return (curr_state & %1) == 1
 
-    enabled := ((curr_state & core#MASK_SHUTDOWN) | enabled) & core#CONFIGURATION_MASK
-    writereg(core#CONFIGURATION, 1, @enabled)
+    state := ((curr_state & core#SHUTDOWN_MASK) | state) & core#CONFIG_MASK
+    writereg(core#CONFIG, 1, @state)
 
 PUB TempData{}: temp_raw
 ' Temperature ADC data
     temp_raw := 0
-    readreg(core#TEMPERATURE, 2, @temp_raw)
+    readreg(core#TEMP, 2, @temp_raw)
 
 PUB Temperature{}: temp_cal
 ' Temperature, in hundredths of a degree, in chosen scale
