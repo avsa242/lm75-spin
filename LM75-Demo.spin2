@@ -1,8 +1,8 @@
 {
     --------------------------------------------
-    Filename: LM75-Demo.spin
+    Filename: LM75-Demo.spin2
     Author: Jesse Burt
-    Description: Demo of the LM75 driver
+    Description: Demo of the LM75 driver (P2 version)
     Copyright (c) 2020
     Started Nov 19, 2020
     Updated Nov 19, 2020
