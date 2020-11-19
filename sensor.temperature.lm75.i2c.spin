@@ -19,22 +19,25 @@ CON
     DEF_SCL             = 28
     DEF_SDA             = 29
     DEF_HZ              = 100_000
+    DEF_ADDR            = %000
     I2C_MAX_FREQ        = core#I2C_MAX_FREQ
 
 ' Overtemperature alarm (OS) output modes
-    ALARM_COMP          = 0
-    ALARM_INT           = 1
+    COMP                = 0
+    INT                 = 1
 
 ' Overtemperature alarm (OS) output pin active state
     ACTIVE_LO           = 0
     ACTIVE_HI           = 1
 
+' Temperature scale
     C                   = 0
     F                   = 1
 
 VAR
 
     byte _temp_scale
+    byte _addr
 
 OBJ
 
@@ -47,25 +50,31 @@ PUB Null{}
 
 PUB Start{}: okay
 ' Start using "standard" Propeller I2C pins, 100kHz
-    okay := Startx (DEF_SCL, DEF_SDA, DEF_HZ)
+    okay := Startx (DEF_SCL, DEF_SDA, DEF_HZ, DEF_ADDR)
 
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): okay
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): okay
 
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)
         if I2C_HZ =< core#I2C_MAX_FREQ
             if okay := i2c.setupx(SCL_PIN, SDA_PIN, I2C_HZ)
-                time.msleep(1)
-                if i2c.present(SLAVE_WR)        ' check device bus presence
-                    return okay
+                if lookdown(ADDR_BITS: %000..%111)
+                    _addr := (ADDR_BITS << 1)
+                    time.msleep(1)
+                    if i2c.present(SLAVE_WR | _addr)    ' check device bus presence
+                        return okay
 
     return FALSE                                ' something above failed
 
 PUB Stop{}
 
-    i2c.stop{}{}
+    i2c.stop{}
 
 PUB Defaults{}
 ' Factory default settings
+    intmode(COMP)
+    intthresh(80_00)
+    intclearthresh(75_00)
+    intactivestate(ACTIVE_LO)
 
 PUB IntActiveState(state): curr_state
 ' Interrupt pin active state (OS)
@@ -105,7 +114,7 @@ PUB IntMode(mode): curr_mode
 '   Any other value polls the chip and returns the current setting
     readreg(core#CONFIG, 1, @curr_mode)
     case mode
-        ALARM_COMP, ALARM_INT:
+        COMP, INT:
             mode := mode << core#COMP_INT
         other:
             return ((curr_mode >> core#COMP_INT) & %1)
@@ -206,20 +215,20 @@ PUB temp2adc(temp_cal): temp_word
 
 PRI readReg(reg, nr_bytes, ptr_buff) | cmd_pkt, tmp
 ' Read nr_bytes from device into ptr_buff
-    cmd_pkt.byte[0] := SLAVE_WR
+    cmd_pkt.byte[0] := SLAVE_WR | _addr
     cmd_pkt.byte[1] := reg
 
     i2c.start{}
     i2c.wr_block(@cmd_pkt, 2)
     i2c.start{}
-    i2c.write(SLAVE_RD)
+    i2c.write(SLAVE_RD | _addr)
     repeat tmp from nr_bytes-1 to 0
         byte[ptr_buff][tmp] := i2c.read(tmp == 0)
     i2c.stop{}
 
 PRI writereg(reg, nr_bytes, ptr_buff) | cmd_pkt[2], tmp
 ' Writes nr_bytes from ptr_buff to device
-    cmd_pkt.byte[0] := SLAVE_WR
+    cmd_pkt.byte[0] := SLAVE_WR | _addr
     cmd_pkt.byte[1] := reg
 
     i2c.start{}
