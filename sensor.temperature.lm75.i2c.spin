@@ -29,8 +29,12 @@ CON
     ALARM_ACTIVE_LOW    = 0
     ALARM_ACTIVE_HIGH   = 1
 
+    C                   = 0
+    F                   = 1
+
 VAR
 
+    byte _temp_scale
 
 OBJ
 
@@ -130,17 +134,41 @@ PUB Shutdown(enabled): curr_state
     enabled := ((curr_state & core#MASK_SHUTDOWN) | enabled) & core#CONFIGURATION_MASK
     writereg(core#CONFIGURATION, 1, @enabled)
 
+PUB TempData{}: temp_raw
+' Temperature ADC data
+    temp_raw := 0
+    readreg(core#TEMPERATURE, 2, @temp_raw)
+
 PUB Temperature{}: temp_cal
 ' Temperature, in hundredths of a degree, in chosen scale
-    readreg(core#TEMPERATURE, 2, @temp_cal)
-    temp_cal.byte[3] := temp_cal.byte[0]                            ' Swap byte order
-    temp_cal.byte[0] := temp_cal.byte[1]
-    temp_cal.byte[1] := temp_cal.byte[3]
-    temp_cal &= core#TEMPERATURE_MASK
-    temp_cal := (temp_cal << 16 ~> 23)                              ' Extend the sign bit, then bring it down into the LSBs, keeping the sign bit
-    temp_cal := temp_cal * 50                                        ' Each LSB is 0.5deg C, multiply by 5 to get centi-degrees
+    return calcTemp(tempdata{})
 
-PRI readReg(reg, nr_bytes, ptr_buff) | cmd_pkt
+PUB TempScale(scale): curr_scl
+' Set temperature scale used by Temperature method
+'   Valid values:
+'      *C (0): Celsius
+'       F (1): Fahrenheit
+'   Any other value returns the current setting
+    case scale
+        C, F:
+            _temp_scale := scale
+        other:
+            return _temp_scale
+
+PRI calcTemp(temp_word): temp_cal | tmp
+' Calculate temperature, using temperature word
+'   Returns: temperature, in hundredths of a degree, in chosen scale
+    temp_cal := (temp_word << 16 ~> 23)                              ' Extend the sign bit, then bring it down into the LSBs, keeping the sign bit
+    temp_cal := temp_cal * 50                                        ' Each LSB is 0.5deg C, multiply by 5 to get centi-degrees
+    case _temp_scale
+        C:
+            return
+        F:
+            return ((temp_cal * 90) / 50) + 32_00
+        other:
+            return FALSE
+
+PRI readReg(reg, nr_bytes, ptr_buff) | cmd_pkt, tmp
 ' Read nr_bytes from device into ptr_buff
     cmd_pkt.byte[0] := SLAVE_WR
     cmd_pkt.byte[1] := reg
@@ -149,7 +177,8 @@ PRI readReg(reg, nr_bytes, ptr_buff) | cmd_pkt
     i2c.wr_block(@cmd_pkt, 2)
     i2c.start{}
     i2c.write(SLAVE_RD)
-    i2c.rd_block(ptr_buff, nr_bytes, TRUE)
+    repeat tmp from nr_bytes-1 to 0
+        byte[ptr_buff][tmp] := i2c.read(tmp == 0)
     i2c.stop{}
 
 PRI writereg(reg, nr_bytes, ptr_buff) | cmd_pkt[2], tmp

@@ -43,7 +43,7 @@ PUB Main | tmp
         ser.Position (0, 4)
         ser.Str (string("Temperature (float, degrees C): "))
         tmp := math.FFloat (tmp)
-        tmp := math.FDiv (tmp, 10.0)
+        tmp := math.FDiv (tmp, 100.0)
         ser.Str (fs.FloatToString (tmp))
         ser.Chars (32, 2)
         time.MSleep (300)
