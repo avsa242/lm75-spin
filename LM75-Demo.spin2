@@ -3,9 +3,9 @@
     Filename: LM75-Demo.spin2
     Author: Jesse Burt
     Description: Demo of the LM75 driver (P2 version)
-    Copyright (c) 2020
+    Copyright (c) 2021
     Started Nov 19, 2020
-    Updated Nov 19, 2020
+    Updated Jan 13, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -123,7 +123,7 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if temp.startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
+    if temp.start(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
         temp.defaults()
         ser.strln(string("MS5607 driver started (I2C)"))
     else

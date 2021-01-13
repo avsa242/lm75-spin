@@ -50,10 +50,10 @@ PUB Null{}
 
 PUB Start{}: okay
 ' Start using "standard" Propeller I2C pins, 100kHz
-    okay := Startx (DEF_SCL, DEF_SDA, DEF_HZ, DEF_ADDR)
+    okay := startx(DEF_SCL, DEF_SDA, DEF_HZ, DEF_ADDR)
 
 PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): okay
-
+' Start using custom settings
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)
         if I2C_HZ =< core#I2C_MAX_FREQ
             if okay := i2c.setupx(SCL_PIN, SDA_PIN, I2C_HZ)
@@ -89,7 +89,7 @@ PUB IntActiveState(state): curr_state
         ACTIVE_LO, ACTIVE_HI:
             state := state << core#OS_POL
         other:
-            return ((curr_state >> core#OS_POL) & %1)
+            return ((curr_state >> core#OS_POL) & 1)
 
     state := ((curr_state & core#OS_POL_MASK) | state) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @state)
@@ -117,7 +117,7 @@ PUB IntMode(mode): curr_mode
         COMP, INT:
             mode := mode << core#COMP_INT
         other:
-            return ((curr_mode >> core#COMP_INT) & %1)
+            return ((curr_mode >> core#COMP_INT) & 1)
 
     mode := ((curr_mode & core#COMP_INT_MASK) | mode) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @mode)
@@ -161,7 +161,7 @@ PUB Powered(state): curr_state
         0, 1:
             state := ||(state) ^ 1
         other:
-            return (curr_state & %1) == 1
+            return (curr_state & 1) == 1
 
     state := ((curr_state & core#SHUTDOWN_MASK) | state) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @state)
@@ -213,10 +213,10 @@ PRI temp2adc(temp_cal): temp_word
     temp_word := (temp_cal / 50) << 7
     return ~~temp_word
 
-PRI readReg(reg, nr_bytes, ptr_buff) | cmd_pkt, tmp
+PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
 ' Read nr_bytes from device into ptr_buff
     cmd_pkt.byte[0] := SLAVE_WR | _addr
-    cmd_pkt.byte[1] := reg
+    cmd_pkt.byte[1] := reg_nr
 
     i2c.start{}
     i2c.wr_block(@cmd_pkt, 2)
@@ -226,10 +226,10 @@ PRI readReg(reg, nr_bytes, ptr_buff) | cmd_pkt, tmp
         byte[ptr_buff][tmp] := i2c.read(tmp == 0)
     i2c.stop{}
 
-PRI writereg(reg, nr_bytes, ptr_buff) | cmd_pkt[2], tmp
+PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt[2], tmp
 ' Writes nr_bytes from ptr_buff to device
     cmd_pkt.byte[0] := SLAVE_WR | _addr
-    cmd_pkt.byte[1] := reg
+    cmd_pkt.byte[1] := reg_nr
 
     i2c.start{}
     repeat tmp from 0 to 1

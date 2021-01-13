@@ -16,8 +16,6 @@ CON
     SLAVE_WR            = core#SLAVE_ADDR
     SLAVE_RD            = core#SLAVE_ADDR|1
 
-    DEF_SCL             = 28
-    DEF_SDA             = 29
     DEF_HZ              = 100_000
     DEF_ADDR            = %000
     I2C_MAX_FREQ        = core#I2C_MAX_FREQ
@@ -47,12 +45,8 @@ OBJ
 PUB Null()
 ' This is not a top-level object
 
-PUB Start(): okay
-' Start using "standard" Propeller I2C pins, 100kHz
-    okay := Startx (DEF_SCL, DEF_SDA, DEF_HZ, DEF_ADDR)
-
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): okay
-
+PUB Start(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): okay
+' Start using custom settings
     if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63)
         if I2C_HZ <= core#I2C_MAX_FREQ
             if okay := i2c.setup(SCL_PIN, SDA_PIN, I2C_HZ)
@@ -88,7 +82,7 @@ PUB IntActiveState(state): curr_state
         ACTIVE_LO, ACTIVE_HI:
             state := state << core#OS_POL
         other:
-            return ((curr_state >> core#OS_POL) & %1)
+            return ((curr_state >> core#OS_POL) & 1)
 
     state := ((curr_state & core#OS_POL_MASK) | state) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @state)
@@ -116,7 +110,7 @@ PUB IntMode(mode): curr_mode
         COMP, INT:
             mode := mode << core#COMP_INT
         other:
-            return ((curr_mode >> core#COMP_INT) & %1)
+            return ((curr_mode >> core#COMP_INT) & 1)
 
     mode := ((curr_mode & core#COMP_INT_MASK) | mode) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @mode)
@@ -160,7 +154,7 @@ PUB Powered(state): curr_state
         0, 1:
             state := abs(state) ^ 1
         other:
-            return (curr_state & %1) == 1
+            return (curr_state & 1) == 1
 
     state := ((curr_state & core#SHUTDOWN_MASK) | state) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @state)
@@ -189,7 +183,7 @@ PUB TempScale(scale): curr_scl
 PRI adc2temp(temp_word): temp_cal | tmp
 ' Calculate temperature, using temperature word
 '   Returns: temperature, in hundredths of a degree, in chosen scale
-    temp_cal := (temp_word << 16 sar 23)         ' Extend sign, then scale down
+    temp_cal := (temp_word << 16 sar 23)        ' Extend sign, then scale down
     temp_cal := temp_cal * 50                   ' LSB = 0.5deg C
     case _temp_scale
         C:
