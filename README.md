@@ -1,7 +1,7 @@
 # lm75-spin 
 -----------
 
-This is a P8X32A/Propeller driver object for the Maxim LM78 Digital Temperature Sensor and Thermal Watchdog (I2C).
+This is a P8X32A/Propeller driver object for the Maxim LM75 Digital Temperature Sensor and Thermal Watchdog (I2C).
 
 **IMPORTANT**: This software is meant to be used with the [spin-standard-library](https://github.com/avsa242/spin-standard-library) (P8X32A) or [p2-spin-standard-library](https://github.com/avsa242/p2-spin-standard-library) (P2X8C4M64P). Please install the applicable library first before attempting to use this code, otherwise you will be missing several files required to build the project.
 

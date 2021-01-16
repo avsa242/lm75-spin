@@ -23,6 +23,8 @@ CON
     SCL_PIN     = 28
     SDA_PIN     = 29
     I2C_HZ      = 400_000
+
+    ' alternate slave address bits (%000 default)
     ADDR_BITS   = %000                          ' %000..%111
 ' --
 
