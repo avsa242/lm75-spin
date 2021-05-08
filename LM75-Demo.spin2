@@ -20,8 +20,8 @@ CON
     SER_BAUD    = 2_000_000
 
 ' I2C:
-    SCL_PIN     = 28
-    SDA_PIN     = 29
+    SCL_PIN     = 0
+    SDA_PIN     = 1
     I2C_HZ      = 400_000
 
     ' alternate slave address bits (%000 default)
@@ -125,11 +125,11 @@ PUB Setup()
     waitms(30)
     ser.clear()
     ser.strln(string("Serial terminal started"))
-    if temp.start(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
+    if temp.startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
         temp.defaults()
-        ser.strln(string("MS5607 driver started (I2C)"))
+        ser.strln(string("LM75 driver started (I2C)"))
     else
-        ser.strln(string("MS5607 driver failed to start - halting"))
+        ser.strln(string("LM75 driver failed to start - halting"))
         temp.stop()
         waitms(5)
         repeat
