@@ -70,7 +70,7 @@ PUB Defaults()
     intclearthresh(75_00)
     intactivestate(ACTIVE_LO)
 
-PUB IntActiveState(state): curr_state
+PUB IntActiveState(state=-2): curr_state
 ' Interrupt pin active state (OS)
 '   Valid values:
 '       ACTIVE_LO (0): Pin is active low
@@ -88,7 +88,7 @@ PUB IntActiveState(state): curr_state
     state := ((curr_state & core.OS_POL_MASK) | state) & core.CONFIG_MASK
     writereg(core.CONFIG, 1, @state)
 
-PUB IntClearThresh(thr): curr_thr
+PUB IntClearThresh(thr=-255): curr_thr
 ' Interrupt clear threshold (hysteresis), in hundredths of a degree
 '   Valid values: -55_00..12_00 (default: 75_00)
     curr_thr := 0
@@ -100,7 +100,7 @@ PUB IntClearThresh(thr): curr_thr
         other:
             return adc2temp(curr_thr)
 
-PUB IntMode(mode): curr_mode
+PUB IntMode(mode=-2): curr_mode
 ' Interrupt output mode
 '   Valid values:
 '       INT (1): Interrupt cleared only after reading temperature
@@ -116,7 +116,7 @@ PUB IntMode(mode): curr_mode
     mode := ((curr_mode & core.COMP_INT_MASK) | mode) & core.CONFIG_MASK
     writereg(core.CONFIG, 1, @mode)
 
-PUB IntPersistence(thr): curr_thr
+PUB IntPersistence(thr=-2): curr_thr
 ' Number of faults necessary to assert alarm
 '   Valid values:
 '       1, 2, 4, 6
@@ -133,7 +133,7 @@ PUB IntPersistence(thr): curr_thr
     thr := ((curr_thr & core.FAULTQ_MASK) | thr) & core.CONFIG_MASK
     writereg(core.CONFIG, 1, @thr)
 
-PUB IntThresh(thr): curr_thr
+PUB IntThresh(thr=-255): curr_thr
 ' Interrupt threshold (overtemperature), in hundredths of a degree Celsius
 '   Valid values:
 '       TempScale() == C: -55_00..125_00 (default: 80_00)
@@ -159,7 +159,7 @@ PUB IntThresh(thr): curr_thr
                     readreg(core.T_OS, 2, @curr_thr)
                     return adc2temp(curr_thr)
 
-PUB Powered(state): curr_state
+PUB Powered(state=-2): curr_state
 ' Enable sensor power
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
@@ -185,7 +185,7 @@ PUB Temperature(): temp_cal
 ' Temperature, in hundredths of a degree, in chosen scale
     return adc2temp(tempdata())
 
-PUB TempScale(scale): curr_scl
+PUB TempScale(scale=-2): curr_scl
 ' Set temperature scale used by Temperature method
 '   Valid values:
 '      *C (0): Celsius
