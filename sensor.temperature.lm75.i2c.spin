@@ -97,15 +97,29 @@ PUB IntActiveState(state): curr_state
 
 PUB IntClearThresh(thr): curr_thr
 ' Interrupt clear threshold (hysteresis), in hundredths of a degree
-'   Valid values: -55_00..12_00 (default: 75_00)
-    curr_thr := 0
-    readreg(core#T_HYST, 2, @curr_thr)
-    case thr
-        -55_00..125_00:
-            thr := temp2adc(thr)
-            writereg(core#T_HYST, 2, @thr)
-        other:
-            return adc2temp(curr_thr)
+'   Valid values:
+'       TempScale() == C: -55_00..125_00 (default: 80_00)
+'       TempScale() == F: -67_00..257_00 (default: 176_00)
+'   Any other value polls the chip and returns the current setting
+    case tempscale(-2)
+        C:
+            case thr
+                -55_00..125_00:
+                    thr := temp2adc(thr)
+                    writereg(core#T_HYST, 2, @thr)
+                other:
+                    curr_thr := 0
+                    readreg(core#T_HYST, 2, @curr_thr)
+                    return adc2temp(curr_thr)
+        F:
+            case thr
+                -67_00..257_00:
+                    thr := temp2adc(thr)
+                    writereg(core#T_HYST, 2, @thr)
+                other:
+                    curr_thr := 0
+                    readreg(core#T_HYST, 2, @curr_thr)
+                    return adc2temp(curr_thr)
 
 PUB IntMode(mode): curr_mode
 ' Interrupt output mode
