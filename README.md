@@ -7,7 +7,7 @@ This is a P8X32A/Propeller driver object for the Maxim LM75 Digital Temperature 
 
 ## Salient Features
 
-* I2C connection at up to 400kHz
+* I2C connection at ~30kHz (P1: SPIN I2C), up to 400kHz (P1: PASM I2C, P2)
 * Read die temperature
 * Set overtemperature (assert) and hysteresis (clear) interrupts
 * Set interrupt active high/low, comparator or interrupt mode
@@ -17,7 +17,7 @@ This is a P8X32A/Propeller driver object for the Maxim LM75 Digital Temperature 
 
 P1/SPIN1:
 * spin-standard-library
-* 1 additional core/cog for the PASM I2C engine
+* 1 additional core/cog for the PASM I2C engine (none if SPIN I2C engine is used)
 
 P2/SPIN2:
 * p2-spin-standard-library

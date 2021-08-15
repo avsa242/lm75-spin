@@ -6,7 +6,7 @@
         Digital Temperature Sensor
     Copyright (c) 2021
     Started May 19, 2019
-    Updated Aug 2, 2021
+    Updated Aug 15, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -41,7 +41,13 @@ VAR
 
 OBJ
 
-    i2c : "com.i2c"                             ' PASM I2C engine
+#ifdef LM75_SPIN
+    i2c : "tiny.com.i2c"                        ' SPIN I2C engine (~30kHz)
+#elseifdef LM75_PASM
+    i2c : "com.i2c"                             ' PASM I2C engine (~400kHz)
+#else
+#error "One of LM75_SPIN or LM75_PASM must be defined"
+#endif
     core: "core.con.lm75"                       ' HW-specific constants
     time: "time"                                ' timekeeping methods
 
@@ -50,13 +56,25 @@ PUB Null{}
 
 PUB Start{}: status
 ' Start using "standard" Propeller I2C pins, 100kHz
+#ifdef LM75_SPIN
+    return startx(DEF_SCL, DEF_SDA, DEF_ADDR)
+#elseifdef LM75_PASM
     return startx(DEF_SCL, DEF_SDA, DEF_HZ, DEF_ADDR)
+#endif
 
+#ifdef LM75_SPIN
+PUB Startx(SCL_PIN, SDA_PIN, ADDR_BITS): status
+' Start using custom settings
+    if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) and {
+}   lookdown(ADDR_BITS: %000..%111)
+        if (status := i2c.init(SCL_PIN, SDA_PIN))
+#elseifdef LM75_PASM
 PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): status
 ' Start using custom settings
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) and {
 }   I2C_HZ =< core#I2C_MAX_FREQ and lookdown(ADDR_BITS: %000..%111)
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
+#endif
             _addr := (ADDR_BITS << 1)
             time.msleep(1)                      ' wait for device startup
             if i2c.present(SLAVE_WR | _addr)    ' check device bus presence
