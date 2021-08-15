@@ -86,13 +86,11 @@ PUB Setup{}
     ser.clear{}
     ser.strln(string("Serial terminal started"))
 
-#ifdef LM75_SPIN
-    if temp.startx(SCL_PIN, SDA_PIN, ADDR_BITS)
-        temp.defaults{}
-        ser.strln(string("LM75 driver started (I2C-SPIN)"))
-#elseifdef LM75_PASM
     if temp.startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS)
         temp.defaults{}
+#ifdef LM75_SPIN
+        ser.strln(string("LM75 driver started (I2C-SPIN)"))
+#elseifdef LM75_PASM
         ser.strln(string("LM75 driver started (I2C-PASM)"))
 #endif
     else
