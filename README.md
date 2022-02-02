@@ -24,8 +24,11 @@ P2/SPIN2:
 
 ## Compiler Compatibility
 
-* P1/SPIN1: OpenSpin (tested with 1.00.81), FlexSpin (tested with 6.0.0-beta)
-* P2/SPIN2: FlexSpin (tested with 6.0.0-beta)
+* P1/SPIN1 OpenSpin (bytecode): Untested (deprecated)
+* P1/SPIN1 FlexSpin (bytecode): OK, tested with 5.9.7-beta
+* P1/SPIN1 FlexSpin (native): OK, tested with 5.9.7-beta
+* ~~P2/SPIN2 FlexSpin (nu-code): FTBFS, tested with 5.9.7-beta~~
+* P2/SPIN2 FlexSpin (native): OK, tested with 5.9.7-beta
 * ~~BST~~ (incompatible - no preprocessor)
 * ~~Propeller Tool~~ (incompatible - no preprocessor)
 * ~~PNut~~ (incompatible - no preprocessor)
@@ -34,11 +37,3 @@ P2/SPIN2:
 
 * None known
 
-## TODO
-
-- [x] Implement method to set hysteresis temp
-- [x] Implement method to set alarm temp
-- [x] Implement reusable conversion method to <-> from parsed temperature to the device's 9-bit register format
-- [x] Add support for alternate I2C addresses
-- [x] Add support for setting temperature scale
-- [x] Port to P2/SPIN2
