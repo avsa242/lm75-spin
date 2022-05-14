@@ -6,12 +6,12 @@
         Digital Temperature Sensor
     Copyright (c) 2022
     Started May 19, 2019
-    Updated May 13, 2022
+    Updated May 14, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
-{ pull in methods common to all Temp/RH drivers }
-#include "sensor.temp_rh.common.spinh"
+{ pull in methods common to all Temp drivers }
+#include "sensor.temp-common.spinh"
 
 CON
 
