@@ -45,7 +45,7 @@ OBJ
 PUB null{}
 ' This is not a top-level object
 
-PUB Start{}: status
+PUB start{}: status
 ' Start using "standard" Propeller I2C pins, 100kHz
     return startx(DEF_SCL, DEF_SDA, DEF_HZ, DEF_ADDR)
 
@@ -56,7 +56,7 @@ PUB startx(SCL_PIN, SDA_PIN, I2C_HZ, ADDR_BITS): status
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
             _addr := (ADDR_BITS << 1)
             time.msleep(1)                      ' wait for device startup
-            if i2c.present(SLAVE_WR | _addr)    ' check device bus presence
+            if (i2c.present(SLAVE_WR | _addr))  ' check device bus presence
                 return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
@@ -70,12 +70,12 @@ PUB stop{}
 
 PUB defaults{}
 ' Factory default settings
-    intslatched(FALSE)
-    intthresh(80_00)
-    intclearthresh(75_00)
-    intactivestate(ACTIVE_LO)
+    int_latch_ena(FALSE)
+    int_thresh(80_00)
+    int_hyst(75_00)
+    int_polarity(ACTIVE_LO)
 
-PUB intactivestate(state): curr_state
+PUB int_polarity(state): curr_state
 ' Interrupt pin active state (OS)
 '   Valid values:
 '       ACTIVE_LO (0): Pin is active low
@@ -93,13 +93,13 @@ PUB intactivestate(state): curr_state
     state := ((curr_state & core#OS_POL_MASK) | state) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @state)
 
-PUB intclearthresh(thr): curr_thr
+PUB int_hyst(thr): curr_thr
 ' Interrupt clear threshold (hysteresis), in hundredths of a degree
 '   Valid values:
 '       TempScale() == C: -55_00..125_00 (default: 80_00)
 '       TempScale() == F: -67_00..257_00 (default: 176_00)
 '   Any other value polls the chip and returns the current setting
-    case tempscale(-2)
+    case temp_scale(-2)
         C:
             case thr
                 -55_00..125_00:
@@ -108,7 +108,7 @@ PUB intclearthresh(thr): curr_thr
                 other:
                     curr_thr := 0
                     readreg(core#T_HYST, 2, @curr_thr)
-                    return tempword2deg(curr_thr)
+                    return temp_word2deg(curr_thr)
         F:
             case thr
                 -67_00..257_00:
@@ -117,9 +117,9 @@ PUB intclearthresh(thr): curr_thr
                 other:
                     curr_thr := 0
                     readreg(core#T_HYST, 2, @curr_thr)
-                    return tempword2deg(curr_thr)
+                    return temp_word2deg(curr_thr)
 
-PUB intslatched(state): curr_state
+PUB int_latch_ena(state): curr_state
 ' Latch interrupts asserted by the sensor
 '   Valid values:
 '       FALSE (0): Interrupt cleared when temp drops below threshold
@@ -135,7 +135,7 @@ PUB intslatched(state): curr_state
     state := ((curr_state & core#COMP_INT_MASK) | state) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @state)
 
-PUB intpersistence(thr): curr_thr
+PUB int_duration(thr): curr_thr
 ' Number of faults necessary to assert alarm
 '   Valid values:
 '       1, 2, 4, 6
@@ -152,13 +152,13 @@ PUB intpersistence(thr): curr_thr
     thr := ((curr_thr & core#FAULTQ_MASK) | thr) & core#CONFIG_MASK
     writereg(core#CONFIG, 1, @thr)
 
-PUB intthresh(thr): curr_thr
+PUB int_thresh(thr): curr_thr
 ' Interrupt threshold (overtemperature), in hundredths of a degree Celsius
 '   Valid values:
 '       TempScale() == C: -55_00..125_00 (default: 80_00)
 '       TempScale() == F: -67_00..257_00 (default: 176_00)
 '   Any other value polls the chip and returns the current setting
-    case tempscale(-2)
+    case temp_scale(-2)
         C:
             case thr
                 -55_00..125_00:
@@ -167,7 +167,7 @@ PUB intthresh(thr): curr_thr
                 other:
                     curr_thr := 0
                     readreg(core#T_OS, 2, @curr_thr)
-                    return tempword2deg(curr_thr)
+                    return temp_word2deg(curr_thr)
         F:
             case thr
                 -67_00..257_00:
@@ -176,7 +176,7 @@ PUB intthresh(thr): curr_thr
                 other:
                     curr_thr := 0
                     readreg(core#T_OS, 2, @curr_thr)
-                    return tempword2deg(curr_thr)
+                    return temp_word2deg(curr_thr)
 
 PUB powered(state): curr_state
 ' Enable sensor power
@@ -195,18 +195,12 @@ PUB powered(state): curr_state
     state := ((curr_state & core#SHUTDOWN_MASK) | state)
     writereg(core#CONFIG, 1, @state)
 
-PUB rhdata{}
-' dummy method
-
-PUB rhword2pct(rh_word)
-' dummy method
-
-PUB tempdata{}: temp_raw
+PUB temp_data{}: temp_raw
 ' Temperature ADC data
     temp_raw := 0
     readreg(core#TEMP, 2, @temp_raw)
 
-PUB tempword2deg(temp_word): temp
+PUB temp_word2deg(temp_word): temp
 ' Convert temperature ADC word to temperature
 '   Returns: temperature, in hundredths of a degree, in chosen scale
     temp := (temp_word << 16 ~> 23)             ' Extend sign, then scale down
