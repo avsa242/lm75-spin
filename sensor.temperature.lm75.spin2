@@ -5,7 +5,7 @@
     Description: Driver for the Maxim LM75 Digital Temperature Sensor (P2 version)
     Copyright (c) 2022
     Started May 19, 2019
-    Updated Sep 20, 2022
+    Updated Sep 25, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -59,8 +59,8 @@ PUB stop()
 PUB defaults()
 ' Factory default settings
     int_latch_ena(FALSE)
-    int_thresh(80_00)
-    int_hyst(75_00)
+    int_set_thresh(80_00)
+    int_set_hyst(75_00)
     int_polarity(ACTIVE_LO)
 
 PUB int_polarity(state=-2): curr_state
@@ -81,31 +81,21 @@ PUB int_polarity(state=-2): curr_state
     state := ((curr_state & core.OS_POL_MASK) | state) & core.CONFIG_MASK
     writereg(core.CONFIG, 1, @state)
 
-PUB int_hyst(thr=-255): curr_thr
-' Interrupt clear threshold (hysteresis), in hundredths of a degree
+PUB int_hyst{}: hyst
+' Set interrupt clear threshold (hysteresis), in hundredths of a degree
 '   Valid values:
-'       TempScale() == C: -55_00..125_00 (default: 80_00)
-'       TempScale() == F: -67_00..257_00 (default: 176_00)
-'   Any other value polls the chip and returns the current setting
-    case temp_scale()
-        C:
-            case thr
-                -55_00..125_00:
-                    thr := temp2adc(thr)
-                    writereg(core.T_HYST, 2, @thr)
-                other:
-                    curr_thr := 0
-                    readreg(core.T_HYST, 2, @curr_thr)
-                    return temp_word2deg(curr_thr)
-        F:
-            case thr
-                -67_00..257_00:
-                    thr := temp2adc(thr)
-                    writereg(core.T_HYST, 2, @thr)
-                other:
-                    curr_thr := 0
-                    readreg(core.T_HYST, 2, @curr_thr)
-                    return temp_word2deg(curr_thr)
+'       if temp_scale() == C: -55_00..125_00 (default: 80_00)
+'       if temp_scale() == F: -67_00..257_00 (default: 176_00)
+'           (clamped to range)
+    hyst := 0
+    readreg(core.T_HYST, 2, @hyst)
+    return temp_word2deg(hyst)
+
+PUB int_set_hyst(hyst)
+' Interrupt clear threshold (hysteresis)
+'   Returns: hundredths of a degree
+    thr := temp2adc(thr)
+    writereg(core#T_HYST, 2, @thr)
 
 PUB int_latch_ena(state): curr_state
 ' Latch interrupts asserted by the sensor
@@ -140,31 +130,21 @@ PUB int_duration(thr=-2): curr_thr
     thr := ((curr_thr & core.FAULTQ_MASK) | thr) & core.CONFIG_MASK
     writereg(core.CONFIG, 1, @thr)
 
-PUB int_thresh(thr=-255): curr_thr
-' Interrupt threshold (overtemperature), in hundredths of a degree Celsius
+PUB int_set_thresh(thr)
+' Set interrupt threshold (overtemperature), in hundredths of a degree Celsius
 '   Valid values:
-'       TempScale() == C: -55_00..125_00 (default: 80_00)
-'       TempScale() == F: -67_00..257_00 (default: 176_00)
-'   Any other value polls the chip and returns the current setting
-    case temp_scale()
-        C:
-            case thr
-                -55_00..125_00:
-                    thr := temp2adc(thr)
-                    writereg(core.T_OS, 2, @thr)
-                other:
-                    curr_thr := 0
-                    readreg(core.T_OS, 2, @curr_thr)
-                    return temp_word2deg(curr_thr)
-        F:
-            case thr
-                -67_00..257_00:
-                    thr := temp2adc(thr)
-                    writereg(core.T_OS, 2, @thr)
-                other:
-                    curr_thr := 0
-                    readreg(core.T_OS, 2, @curr_thr)
-                    return temp_word2deg(curr_thr)
+'       if temp_scale() == C: -55_00..125_00 (default: 80_00)
+'       if temp_scale() == F: -67_00..257_00 (default: 176_00)
+'           (clamped to range)
+    thr := temp2adc(thr)
+    writereg(core.T_OS, 2, @thr)
+
+PUB int_thresh{}: curr_thr
+' Interrupt threshold (overtemperature)
+'   Returns: hundredths of a degree
+    curr_thr := 0
+    readreg(core#T_OS, 2, @curr_thr)
+    return temp_word2deg(curr_thr)
 
 PUB powered(state=-2): curr_state
 ' Enable sensor power
@@ -191,7 +171,7 @@ PUB temp_data(): temp_raw
 PUB temp_word2deg(temp_word): temp
 ' Convert temperature ADC word to temperature
 '   Returns: temperature, in hundredths of a degree, in chosen scale
-    temp := (temp_word << 16 ~> 23)             ' Extend sign, then scale down
+    temp := (temp_word << 16 sar 23)            ' Extend sign, then scale down
     temp *= 50                                  ' LSB = 0.5deg C
     case _temp_scale
         C:
@@ -206,13 +186,14 @@ PRI temp2adc(temp_cal): temp_word
 '   Returns: ADC word, 16bit, left-justified
     case _temp_scale                            ' convert to Celsius, first
         C:
+            temp_cal := -55_00 #> temp_cal <# 125_00
         F:
-            temp_cal := ((temp_cal - 32_00) * 50) / 90
+            temp_cal := (( (-67_00 #> temp_cal <# 257_00) - 32_00) * 50) / 90
         other:
             return FALSE
 
     temp_word := (temp_cal / 50) << 7
-    return ~~temp_word
+    return (temp_word signx 15)
 
 PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
 ' Read nr_bytes from device into ptr_buff
