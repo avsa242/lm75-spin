@@ -6,7 +6,7 @@
         * Temp data output
     Copyright (c) 2022
     Started Nov 19, 2020
-    Updated Sep 25, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -31,8 +31,8 @@ CON
 
 OBJ
 
-    cfg:    "core.con.boardcfg.flip"
-    sensr:  "sensor.temperature.lm75"
+    cfg:    "boardcfg.flip"
+    sensor:  "sensor.temperature.lm75"
     ser:    "com.serial.terminal.ansi"
     time:   "time"
 
@@ -43,13 +43,13 @@ PUB setup{}
     ser.clear{}
     ser.strln(string("Serial terminal started"))
 
-    if (sensr.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS))
+    if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ, ADDR_BITS))
         ser.strln(string("LM75 driver started"))
     else
         ser.strln(string("LM75 driver failed to start - halting"))
         repeat
 
-    sensr.temp_scale(sensr#C)
+    sensor.temp_scale(sensor#C)
     demo{}
 
 #include "tempdemo.common.spinh"             ' code common to all temp/RH demos
