@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: core.con.lm75.spin
-    Author: Jesse Burt
-    Description: LM75-specific constants
-    Copyright (c) 2020
-    Started May 19, 2019
-    Updated Nov 19, 2020
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       core.con.lm75.spin
+    Description:    LM75-specific constants
+    Author:         Jesse Burt
+    Started:        May 19, 2019
+    Updated:        Oct 4, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
 
 CON
@@ -37,12 +36,14 @@ CON
     T_OS                = $03
     T_OS_MASK           = $FF80
 
-PUB null{}
+
+PUB null()
 ' This is not a top-level object
+
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
