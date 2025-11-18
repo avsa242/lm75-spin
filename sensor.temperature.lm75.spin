@@ -101,11 +101,10 @@ PUB int_polarity(state=-2): curr_state
     case state
         ACTIVE_LO, ACTIVE_HI:
             state := state << core.OS_POL
+            state := ((curr_state & core.OS_POL_MASK) | state)
+            writereg(core.CONFIG, state)
         other:
             return ((curr_state >> core.OS_POL) & 1)
-
-    state := ((curr_state & core.OS_POL_MASK) | state)
-    writereg(core.CONFIG, state)
 
 
 PUB int_hyst(): hyst
@@ -132,14 +131,13 @@ PUB int_latch_ena(state=-2): curr_state
 '       TRUE (-1 or 1): Interrupt cleared only after reading temperature
 '   Any other value polls the chip and returns the current setting
     curr_state := readreg(core.CONFIG)
-    case ||(state)
+    case abs(state)
         0, 1:
-            state := ||(state) << core.COMP_INT
+            state := abs(state) << core.COMP_INT
+            state := ((curr_state & core.COMP_INT_MASK) | state)
+            writereg(core.CONFIG, state)
         other:
             return ((curr_state >> core.COMP_INT) & 1)
-
-    state := ((curr_state & core.COMP_INT_MASK) | state)
-    writereg(core.CONFIG, state)
 
 
 PUB int_duration(thr=-2): curr_thr
@@ -152,12 +150,11 @@ PUB int_duration(thr=-2): curr_thr
     case thr
         1, 2, 4, 6:
             thr := lookdownz(thr: 1, 2, 4, 6)
+            thr := ((curr_thr & core.FAULTQ_MASK) | thr)
+            writereg(core.CONFIG, thr)
         other:
             curr_thr := (curr_thr >> core.FAULTQ) & core.FAULTQ_BITS
             return lookupz(curr_thr: 1, 2, 4, 6)
-
-    thr := ((curr_thr & core.FAULTQ_MASK) | thr)
-    writereg(core.CONFIG, thr)
 
 
 PUB int_set_thresh(thr)
@@ -183,16 +180,15 @@ PUB powered(state=-2): curr_state
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Current consumption when shutdown is approx 1uA
     curr_state := readreg(core.CONFIG)
-    case ||(state)
+    case abs(state)
         0, 1:
             ' bit is actually a "shutdown" bit, so its logic is inverted
             ' (i.e., 0 = powered on, 1 = shutdown), so flip the bit
-            state := ||(state) ^ 1
+            state := abs(state) ^ 1
+            state := ((curr_state & core.SHUTDOWN_MASK) | state)
+            writereg(core.CONFIG, state)
         other:
             return (curr_state & 1) == 0
-
-    state := ((curr_state & core.SHUTDOWN_MASK) | state)
-    writereg(core.CONFIG, state)
 
 
 PUB temp_data(): temp_raw
