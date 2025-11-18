@@ -41,7 +41,6 @@ OBJ
     i2c : "com.i2c.nocog"                       ' BC I2C engine
 #else
     i2c : "com.i2c"                             ' PASM I2C engine
-#endif
     core: "core.con.lm75"                       ' HW-specific constants
     time: "time"                                ' timekeeping methods
 
@@ -89,7 +88,7 @@ PUB defaults()
     int_polarity(ACTIVE_LO)
 
 
-PUB int_polarity(state=-2): curr_state
+PUB int_polarity(p=-2): r
 ' Interrupt pin active state (OS)
 '   Valid values:
 '       ACTIVE_LO (0): Pin is active low
@@ -97,64 +96,64 @@ PUB int_polarity(state=-2): curr_state
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The OS pin is open-drain, under all conditions, and requires
 '       a pull-up resistor to output a high voltage.
-    curr_state := readreg(core.CONFIG)
-    case state
+    r := readreg(core.CONFIG)
+    case p
         ACTIVE_LO, ACTIVE_HI:
-            state := state << core.OS_POL
-            state := ((curr_state & core.OS_POL_MASK) | state)
-            writereg(core.CONFIG, state)
+            p := p << core.OS_POL
+            p := ((r & core.OS_POL_MASK) | p)
+            writereg(core.CONFIG, p)
         other:
-            return ((curr_state >> core.OS_POL) & 1)
+            return ((r >> core.OS_POL) & 1)
 
 
-PUB int_hyst(): hyst
+PUB int_hyst(): h
 ' Set interrupt clear threshold (hysteresis), in hundredths of a degree
 '   Valid values:
 '       if temp_scale() == C: -55_00..125_00 (default: 80_00)
 '       if temp_scale() == F: -67_00..257_00 (default: 176_00)
 '           (clamped to range)
-    hyst := readreg(core.T_HYST, 2)
-    return temp_word2deg(hyst)
+    h := readreg(core.T_HYST, 2)
+    return temp_word2deg(h)
 
 
-PUB int_set_hyst(hyst)
+PUB int_set_hyst(h)
 ' Interrupt clear threshold (hysteresis)
 '   Returns: hundredths of a degree
-    hyst := temp2adc(hyst)
-    writereg(core.T_HYST, hyst, 2)
+    h := temp2adc(h)
+    writereg(core.T_HYST, h, 2)
 
 
-PUB int_latch_ena(state=-2): curr_state
+PUB int_latch_ena(le=-2): r
 ' Latch interrupts asserted by the sensor
 '   Valid values:
 '       FALSE (0): Interrupt cleared when temp drops below threshold
 '       TRUE (-1 or 1): Interrupt cleared only after reading temperature
 '   Any other value polls the chip and returns the current setting
-    curr_state := readreg(core.CONFIG)
-    case abs(state)
+    r := readreg(core.CONFIG)
+    case abs(le)
         0, 1:
-            state := abs(state) << core.COMP_INT
-            state := ((curr_state & core.COMP_INT_MASK) | state)
-            writereg(core.CONFIG, state)
+            le := abs(le) << core.COMP_INT
+            le := ((r & core.COMP_INT_MASK) | le)
+            writereg(core.CONFIG, le)
         other:
-            return ((curr_state >> core.COMP_INT) & 1)
+            return ((r >> core.COMP_INT) & 1)
 
 
-PUB int_duration(thr=-2): curr_thr
+PUB int_duration(thr=-2): r
 ' Number of faults necessary to assert alarm
 '   Valid values:
 '       1, 2, 4, 6
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The faults must occur consecutively (prevents false positives in noisy environments)
-    curr_thr := readreg(core.CONFIG)
+    r := readreg(core.CONFIG)
     case thr
         1, 2, 4, 6:
             thr := lookdownz(thr: 1, 2, 4, 6)
-            thr := ((curr_thr & core.FAULTQ_MASK) | thr)
+            thr := ((r & core.FAULTQ_MASK) | thr)
             writereg(core.CONFIG, thr)
         other:
-            curr_thr := (curr_thr >> core.FAULTQ) & core.FAULTQ_BITS
-            return lookupz(curr_thr: 1, 2, 4, 6)
+            r := (r >> core.FAULTQ) & core.FAULTQ_BITS
+            return lookupz(r: 1, 2, 4, 6)
 
 
 PUB int_set_thresh(thr)
@@ -167,62 +166,62 @@ PUB int_set_thresh(thr)
     writereg(core.T_OS, thr, 2)
 
 
-PUB int_thresh(): curr_thr
+PUB int_thresh(): t
 ' Interrupt threshold (overtemperature)
 '   Returns: hundredths of a degree
-    curr_thr := readreg(core.T_OS, 2)
-    return temp_word2deg(curr_thr)
+    t := readreg(core.T_OS, 2)
+    return temp_word2deg(t)
 
 
-PUB powered(state=-2): curr_state
+PUB powered(p=-2): r
 ' Enable sensor power
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Current consumption when shutdown is approx 1uA
-    curr_state := readreg(core.CONFIG)
-    case abs(state)
+    r := readreg(core.CONFIG)
+    case abs(p)
         0, 1:
             ' bit is actually a "shutdown" bit, so its logic is inverted
             ' (i.e., 0 = powered on, 1 = shutdown), so flip the bit
-            state := abs(state) ^ 1
-            state := ((curr_state & core.SHUTDOWN_MASK) | state)
-            writereg(core.CONFIG, state)
+            p := abs(p) ^ 1
+            p := ((r & core.SHUTDOWN_MASK) | p)
+            writereg(core.CONFIG, p)
         other:
-            return (curr_state & 1) == 0
+            return (r & 1) == 0
 
 
-PUB temp_data(): temp_raw
+PUB temp_data(): t
 ' Temperature ADC data
-    temp_raw := readreg(core.TEMP, 2)
+    t := readreg(core.TEMP, 2)
 
 
-PUB temp_word2deg(temp_word): temp
+PUB twd2deg(twd): t
 ' Convert temperature ADC word to temperature
 '   Returns: temperature, in hundredths of a degree, in chosen scale
-    temp := (temp_word << 16 ~> 23)             ' Extend sign, then scale down
-    temp *= 50                                  ' LSB = 0.5deg C
-    case _temp_scale
+    t := (twd << 16 ~> 23)                      ' Extend sign, then scale down
+    t *= 50                                     ' LSB = 0.5deg C
+    case _t_scale
         C:
             return
         F:
-            return ((temp * 90) / 50) + 32_00
+            return ((t * 90) / 50) + 32_00
         other:
             return FALSE
 
 
-PRI temp2adc(temp_cal): temp_word
+PRI temp2adc(t): w
 ' Calculate ADC word, using temperature in hundredths of a degree
 '   Returns: ADC word, 16bit, left-justified
     case _temp_scale                            ' convert to Celsius, first
         C:
-            temp_cal := -55_00 #> temp_cal <# 125_00
+            t := -55_00 #> t <# 125_00
         F:
-            temp_cal := (( (-67_00 #> temp_cal <# 257_00) - 32_00) * 50) / 90
+            t := (( (-67_00 #> t <# 257_00) - 32_00) * 50) / 90
         other:
             return FALSE
 
-    temp_word := (temp_cal / 50) << 7
-    return ~~temp_word
+    w := (t / 50) << 7
+    return ~~w
 
 
 PRI readreg(reg_nr, len=1): v | cmd_pkt
