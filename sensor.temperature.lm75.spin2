@@ -36,12 +36,14 @@ VAR
 
 OBJ
 
-    i2c : "com.i2c"                             ' I2C engine
-    core: "core.con.lm75"                       ' HW-specific constants
+    i2c:    "com.i2c"                           ' I2C engine
+    core:   "core.con.lm75"                     ' HW-specific constants
 
 
 PUB null()
 ' This is not a top-level object
+
+
 PUB start(): status
 ' Start using default I/O settings
     return startx(SCL, SDA, I2C_FREQ, I2C_ADDR)
@@ -94,10 +96,10 @@ PUB int_polarity(p=-2): r
     case p
         ACTIVE_LO, ACTIVE_HI:
             p := p << core.OS_POL
-            p := ((r & core.OS_POL_MASK) | p)
+            p := ( (r & core.OS_POL_MASK) | p)
             writereg(core.CONFIG, p)
         other:
-            return ((r >> core.OS_POL) & 1)
+            return ( (r >> core.OS_POL) & 1)
 
 
 PUB int_hyst(): h
@@ -127,10 +129,10 @@ PUB int_latch_ena(le=-2): r
     case abs(le)
         0, 1:
             le := abs(le) << core.COMP_INT
-            le := ((r & core.COMP_INT_MASK) | le)
+            le := ( (r & core.COMP_INT_MASK) | le)
             writereg(core.CONFIG, le)
         other:
-            return ((r >> core.COMP_INT) & 1)
+            return ( (r >> core.COMP_INT) & 1)
 
 
 PUB int_duration(thr=-2): r
@@ -142,12 +144,12 @@ PUB int_duration(thr=-2): r
     r := readreg(core.CONFIG)
     case thr
         1, 2, 4, 6:
-            thr := lookdownz(thr: 1, 2, 4, 6)
-            thr := ((r & core.FAULTQ_MASK) | thr)
+            thr := lookdownz(thr: 1, 2, 4, 6)   ' map 1, 2, 4, 6 to bitfield vals 0, 1, 2, 3
+            thr := ( (r & core.FAULTQ_MASK) | thr)
             writereg(core.CONFIG, thr)
         other:
             r := (r >> core.FAULTQ) & core.FAULTQ_BITS
-            return lookupz(r: 1, 2, 4, 6)
+            return lookupz(r: 1, 2, 4, 6)       ' map bitfield vals 0, 1, 2, 3 to 1, 2, 4, 6
 
 
 PUB int_set_thresh(thr)
@@ -178,27 +180,27 @@ PUB powered(p=-2): r
             ' bit is actually a "shutdown" bit, so its logic is inverted
             ' (i.e., 0 = powered on, 1 = shutdown), so flip the bit
             p := abs(p) ^ 1
-            p := ((r & core.SHUTDOWN_MASK) | p)
+            p := ( (r & core.SHUTDOWN_MASK) | p)
             writereg(core.CONFIG, p)
         other:
-            return (r & 1) == 0
+            return ( (r & 1) == 0 )
 
 
 PUB temp_data(): t
 ' Temperature ADC data
-    t := readreg(core.TEMP, 2)
+    return readreg(core.TEMP, 2)
 
 
-PUB twd2deg(twd): t
+PUB temp_word2deg(twd): t
 ' Convert temperature ADC word to temperature
 '   Returns: temperature, in hundredths of a degree, in chosen scale
     t := (twd << 16 sar 23)                     ' Extend sign, then scale down
     t *= 50                                     ' LSB = 0.5deg C
-    case _t_scale
+    case _temp_scale
         C:
             return
         F:
-            return ((t * 90) / 50) + 32_00
+            return ( (t * 90) / 50) + 32_00
         other:
             return FALSE
 
@@ -210,7 +212,7 @@ PRI temp2adc(t): w
         C:
             t := -55_00 #> t <# 125_00
         F:
-            t := (( (-67_00 #> t <# 257_00) - 32_00) * 50) / 90
+            t := ( ( (-67_00 #> t <# 257_00) - 32_00) * 50) / 90
         other:
             return FALSE
 
