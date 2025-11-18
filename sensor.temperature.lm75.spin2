@@ -4,8 +4,8 @@
     Description:    Driver for the Maxim LM75 Digital Temperature Sensor
     Author:         Jesse Burt
     Started:        May 19, 2019
-    Updated:        Oct 4, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        Nov 18, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
@@ -91,8 +91,7 @@ PUB int_polarity(state=-2): curr_state
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The OS pin is open-drain, under all conditions, and requires
 '       a pull-up resistor to output a high voltage.
-    curr_state := 0
-    readreg(core.CONFIG, 1, @curr_state)
+    curr_state := readreg(core.CONFIG)
     case state
         ACTIVE_LO, ACTIVE_HI:
             state := state << core.OS_POL
@@ -100,7 +99,7 @@ PUB int_polarity(state=-2): curr_state
             return ((curr_state >> core.OS_POL) & 1)
 
     state := ((curr_state & core.OS_POL_MASK) | state)
-    writereg(core.CONFIG, 1, @state)
+    writereg(core.CONFIG, state)
 
 
 PUB int_hyst(): hyst
@@ -109,8 +108,7 @@ PUB int_hyst(): hyst
 '       if temp_scale() == C: -55_00..125_00 (default: 80_00)
 '       if temp_scale() == F: -67_00..257_00 (default: 176_00)
 '           (clamped to range)
-    hyst := 0
-    readreg(core.T_HYST, 2, @hyst)
+    hyst := readreg(core.T_HYST, 2)
     return temp_word2deg(hyst)
 
 
@@ -118,7 +116,7 @@ PUB int_set_hyst(hyst)
 ' Interrupt clear threshold (hysteresis)
 '   Returns: hundredths of a degree
     hyst := temp2adc(hyst)
-    writereg(core.T_HYST, 2, @hyst)
+    writereg(core.T_HYST, hyst, 2)
 
 
 PUB int_latch_ena(state=-2): curr_state
@@ -127,8 +125,7 @@ PUB int_latch_ena(state=-2): curr_state
 '       FALSE (0): Interrupt cleared when temp drops below threshold
 '       TRUE (-1 or 1): Interrupt cleared only after reading temperature
 '   Any other value polls the chip and returns the current setting
-    curr_state := 0
-    readreg(core.CONFIG, 1, @curr_state)
+    curr_state := readreg(core.CONFIG)
     case abs(state)
         0, 1:
             state := abs(state) << core.COMP_INT
@@ -136,7 +133,7 @@ PUB int_latch_ena(state=-2): curr_state
             return ((curr_state >> core.COMP_INT) & 1)
 
     state := ((curr_state & core.COMP_INT_MASK) | state)
-    writereg(core.CONFIG, 1, @state)
+    writereg(core.CONFIG, state)
 
 
 PUB int_duration(thr=-2): curr_thr
@@ -145,8 +142,7 @@ PUB int_duration(thr=-2): curr_thr
 '       1, 2, 4, 6
 '   Any other value polls the chip and returns the current setting
 '   NOTE: The faults must occur consecutively (prevents false positives in noisy environments)
-    curr_thr := 0
-    readreg(core.CONFIG, 1, @curr_thr)
+    curr_thr := readreg(core.CONFIG)
     case thr
         1, 2, 4, 6:
             thr := lookdownz(thr: 1, 2, 4, 6)
@@ -155,7 +151,7 @@ PUB int_duration(thr=-2): curr_thr
             return lookupz(curr_thr: 1, 2, 4, 6)
 
     thr := ((curr_thr & core.FAULTQ_MASK) | thr)
-    writereg(core.CONFIG, 1, @thr)
+    writereg(core.CONFIG, thr)
 
 
 PUB int_set_thresh(thr)
@@ -165,14 +161,13 @@ PUB int_set_thresh(thr)
 '       if temp_scale() == F: -67_00..257_00 (default: 176_00)
 '           (clamped to range)
     thr := temp2adc(thr)
-    writereg(core.T_OS, 2, @thr)
+    writereg(core.T_OS, thr, 2)
 
 
 PUB int_thresh(): curr_thr
 ' Interrupt threshold (overtemperature)
 '   Returns: hundredths of a degree
-    curr_thr := 0
-    readreg(core.T_OS, 2, @curr_thr)
+    curr_thr := readreg(core.T_OS, 2)
     return temp_word2deg(curr_thr)
 
 
@@ -181,8 +176,7 @@ PUB powered(state=-2): curr_state
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Current consumption when shutdown is approx 1uA
-    curr_state := 0
-    readreg(core.CONFIG, 1, @curr_state)
+    curr_state := readreg(core.CONFIG)
     case abs(state)
         0, 1:
             ' bit is actually a "shutdown" bit, so its logic is inverted
@@ -192,13 +186,12 @@ PUB powered(state=-2): curr_state
             return (curr_state & 1) == 0
 
     state := ((curr_state & core.SHUTDOWN_MASK) | state)
-    writereg(core.CONFIG, 1, @state)
+    writereg(core.CONFIG, state)
 
 
 PUB temp_data(): temp_raw
 ' Temperature ADC data
-    temp_raw := 0
-    readreg(core.TEMP, 2, @temp_raw)
+    temp_raw := readreg(core.TEMP, 2)
 
 
 PUB temp_word2deg(temp_word): temp
@@ -230,33 +223,34 @@ PRI temp2adc(temp_cal): temp_word
     return (temp_word signx 15)
 
 
-PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
-' Read nr_bytes from device into ptr_buff
+PRI readreg(reg_nr, len=1): v | cmd_pkt
+' Read value from register
     cmd_pkt.byte[0] := SLAVE_WR | _addr
     cmd_pkt.byte[1] := reg_nr
 
+    v := 0
     i2c.start()
     i2c.wrblock_lsbf(@cmd_pkt, 2)
     i2c.start()
     i2c.write(SLAVE_RD | _addr)
-    i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)
+    i2c.rdblock_msbf(@v, len, i2c.NAK)
     i2c.stop()
 
 
-PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
-' Writes nr_bytes from ptr_buff to device
+PRI writereg(reg_nr, val, len=1) | cmd_pkt
+' Write value to register
     cmd_pkt.byte[0] := SLAVE_WR | _addr
     cmd_pkt.byte[1] := reg_nr
 
     i2c.start()
     i2c.wrblock_lsbf(@cmd_pkt, 2)
-    i2c.wrblock_msbf(ptr_buff, nr_bytes)
+    i2c.wrblock_msbf(@val, len)
     i2c.stop()
 
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
